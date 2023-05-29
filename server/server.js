@@ -19,7 +19,8 @@ const db = mysql.createConnection({
 
 db.connect((err) => {
   if (err) {
-    throw err;
+    console.error("Error connecting to MySQL database:", err);
+    process.exit(1); // Exit the application if there is an error
   }
   console.log("Connected to MySQL database!");
 });
@@ -28,19 +29,74 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
-// Create student attendance
+app.get("/attendance", (req, res) => {
+  db.query("SELECT * FROM attendance", (err, result) => {
+    if (err) {
+      console.error("Error fetching attendance records:", err);
+      return res
+        .status(500)
+        .json({ error: "Error fetching attendance records" });
+    }
+    res.status(200).json(result);
+  });
+});
+
 app.post("/attendance", (req, res) => {
   const { studentId, date, present } = req.body;
   const query = `INSERT INTO attendance (student_id, date, present) VALUES ('${studentId}', '${date}', ${present})`;
 
   db.query(query, (err, result) => {
     if (err) {
+      console.error("Error creating attendance record:", err);
+      return res
+        .status(500)
+        .json({ error: "Error creating attendance record" });
+    }
+    const attendanceId = result.insertId;
+
+    const fetchQuery = `SELECT * FROM attendance WHERE id = ${attendanceId}`;
+    db.query(fetchQuery, (fetchErr, fetchResult) => {
+      if (fetchErr) {
+        console.error("Error fetching attendance record:", fetchErr);
+        return res
+          .status(500)
+          .json({ error: "Error fetching attendance record" });
+      }
+
+      if (fetchResult.length === 0) {
+        return res.status(404).json({ error: "Attendance record not found" });
+      }
+
+      const updatedRecord = fetchResult[0];
+      res.json(updatedRecord);
+    });
+  });
+});
+
+//localhost:5000/attendance/${attendanceId}
+
+// Update student attendance
+app.put("/attendance/:id", (req, res) => {
+  const attendanceId = req.params.id;
+  const { student_id, date, present } = req.body.studentId;
+  console.log(req.body.studentId);
+  const query = `UPDATE attendance SET student_id = '${student_id}', date = '${date.slice(
+    0,
+    10
+  )}', present = ${present} WHERE id = ${attendanceId}`;
+
+  db.query(query, (err, result) => {
+    if (err) {
       throw err;
     }
-    const attendanceId = result.id;
+
+    // Check if any records were affected by the update operation
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Attendance record not found" });
+    }
 
     // Fetch the updated attendance record
-    const fetchQuery = "SELECT * FROM attendance ";
+    const fetchQuery = `SELECT * FROM attendance WHERE id = ${attendanceId}`;
     db.query(fetchQuery, (fetchErr, fetchResult) => {
       if (fetchErr) {
         throw fetchErr;
@@ -58,73 +114,32 @@ app.post("/attendance", (req, res) => {
   });
 });
 
-// Read student attendance
-app.get("/attendance", (req, res) => {
-  const query = "SELECT * FROM attendance";
-
-  db.query(query, (err, result) => {
-    if (err) {
-      throw err;
-    }
-    res.json(result);
-  });
-});
-
-// Update student attendance
-app.put("/attendance/:id", (req, res) => {
-  const attendanceId = req.params.id;
-  const { present } = req.body;
-  const query = "UPDATE attendance SET present = ? WHERE id = ?";
-  const values = [present, attendanceId];
-
-  db.query(query, values, (err, result) => {
-    if (err) {
-      throw err;
-    }
-
-    // Fetch the updated attendance record
-    const fetchQuery = "SELECT * FROM attendance WHERE id = ?";
-    db.query(fetchQuery, [attendanceId], (fetchErr, fetchResult) => {
-      if (fetchErr) {
-        throw fetchErr;
-      }
-
-      // Check if the record exists
-      if (fetchResult.length === 0) {
-        return res.status(404).json({ error: "Attendance record not found" });
-      }
-
-      // Serialize the updated record and send as JSON response
-      const updatedRecord = fetchResult[0];
-      res.json(updatedRecord);
-    });
-  });
-});
-
-// Delete student attendance
-app.delete("/attendance/:id", (req, res) => {
+http: app.delete("/attendance/:id", (req, res) => {
   const attendanceId = req.params.id;
   const query = `DELETE FROM attendance WHERE id = ${attendanceId}`;
 
   db.query(query, (err, result) => {
     if (err) {
-      throw err;
+      console.error("Error deleting attendance record:", err);
+      return res
+        .status(500)
+        .json({ error: "Error deleting attendance record" });
     }
-    // Fetch the updated attendance record
-    const fetchQuery = "SELECT * FROM attendance ";
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Attendance record not found" });
+    }
+
+    const fetchQuery = "SELECT * FROM attendance";
     db.query(fetchQuery, (fetchErr, fetchResult) => {
       if (fetchErr) {
-        throw fetchErr;
+        console.error("Error fetching attendance records:", fetchErr);
+        return res
+          .status(500)
+          .json({ error: "Error fetching attendance records" });
       }
 
-      // Check if the record exists
-      if (fetchResult.length === 0) {
-        return res.status(404).json({ error: "Attendance record not found" });
-      }
-
-      // Serialize the updated record and send as JSON response
-      const updatedRecord = fetchResult[0];
-      res.json(updatedRecord);
+      res.json(fetchResult);
     });
   });
 });
