@@ -43,7 +43,10 @@ app.get("/attendance", (req, res) => {
 
 app.post("/attendance", (req, res) => {
   const { studentId, date, present } = req.body;
-  const query = `INSERT INTO attendance (student_id, date, present) VALUES ('${studentId}', '${date}', ${present})`;
+  const query = `INSERT INTO attendance (student_id, date, present) VALUES ('${studentId}', '${date.slice(
+    1,
+    10
+  )}', ${present})`;
 
   db.query(query, (err, result) => {
     if (err) {
@@ -109,6 +112,7 @@ app.put("/attendance/:id", (req, res) => {
 
       // Serialize the updated record and send as JSON response
       const updatedRecord = fetchResult[0];
+      console.log(updatedRecord);
       res.json(updatedRecord);
     });
   });
