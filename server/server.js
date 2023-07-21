@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const socketIO = require("socket.io");
 
 const app = express();
 const port = 5000;
@@ -48,9 +49,20 @@ const authenticateJWT = (req, res, next) => {
   }
 };
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
+const io = socketIO(server, {
+  cors: {
+    origin: "http://localhost:3000", // Replace with the actual frontend URL
+    methods: ["GET", "POST"],
+    allowedHeaders: ["my-custom-header"],
+    credentials: true,
+  },
+});
+
+// Enable CORS for Socket.IO
 
 // To avoid error if deploying the app in a new server
 
@@ -91,6 +103,122 @@ db.query(createAttendanceTableQuery, (err) => {
   }
 });
 
+// Add this SQL query to create the "messages" table if it doesn't exist
+const createMessagesTableQuery = `
+  CREATE TABLE IF NOT EXISTS messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sender VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`;
+
+// Execute the query to create the table
+db.query(createMessagesTableQuery, (err) => {
+  if (err) {
+    console.error("Error creating messages table:", err);
+  } else {
+    console.log("Messages table created or already exists");
+  }
+});
+
+// Group chat code
+// Store connected clients (users)
+// Store connected clients with their usernames
+const connectedUsers = new Map();
+// Store messages in memory (this should be a persistent storage in production)
+const messages = [];
+
+// Function to fetch messages from the database
+const fetchMessages = () => {
+  const fetchMessagesQuery = `SELECT * FROM messages`;
+  return new Promise((resolve, reject) => {
+    db.query(fetchMessagesQuery, (err, results) => {
+      if (err) {
+        reject(err);
+      } else {
+        console.log(results);
+        resolve(results);
+      }
+    });
+  });
+};
+
+// Socket.io connection event
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+
+  // Handle user login and store the username
+  socket.on("login", (userName) => {
+    console.log(`User '${userName}' connected.`);
+    connectedUsers.set(socket.id, userName);
+    // Send previous messages to the client upon successful login
+    try {
+      fetchMessages()
+        .then((results) => {
+          console.log(results);
+          socket.emit("previous_messages", results);
+        })
+        .catch((err) => {
+          console.error("Error fetching previous messages:", err);
+        });
+    } catch {
+      console.error("Error Logging in ");
+    }
+  });
+
+  socket.on("previousMessages", (message) => {
+    fetchMessages()
+      .then((results) => {
+        console.log(results);
+        socket.emit("previous_messages", results);
+      })
+      .catch((err) => {
+        console.error("Error fetching previous messages:", err);
+      });
+  });
+
+  // Handle new messages from clients
+  socket.on("message", (message) => {
+    console.log("New message:", message);
+
+    // Add the new message to the messages array
+    messages.push(message);
+
+    // Insert the new message into the "messages" table in the database
+    const insertMessageQuery = `
+      INSERT INTO messages (sender, message)
+      VALUES ('${message.sender}', '${message.message}')
+    `;
+
+    db.query(insertMessageQuery, (err, result) => {
+      if (err) {
+        console.error("Error inserting message into database:", err);
+      } else {
+        console.log("Message inserted into database:", result);
+      }
+    });
+
+    // Broadcast the message to all connected clients
+    io.emit("message", message);
+  });
+
+  // Handle disconnection
+  socket.on("disconnect", () => {
+    console.log("A user disconnected:", socket.id);
+
+    // Remove user from the connected users
+    if (connectedUsers.has(socket.id)) {
+      const userName = connectedUsers.get(socket.id);
+      connectedUsers.delete(socket.id);
+      console.log(`User '${userName}' disconnected.`);
+    }
+  });
+});
+
+// Group chat code
+
+// attendance table code
 // Register a new user
 app.post("/register", (req, res) => {
   const { username, password } = req.body;
