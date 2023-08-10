@@ -84,6 +84,24 @@ db.query(createUsersTableQuery, (err) => {
   }
 });
 
+// Create students table with additional 'status' column
+const createStudentsTableQuery = `
+  CREATE TABLE IF NOT EXISTS students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    status ENUM('active', 'inactive') DEFAULT 'active'
+  )
+`;
+
+db.query(createStudentsTableQuery, (err) => {
+  if (err) {
+    console.error("Error creating students table:", err);
+  } else {
+    console.log("Students table created or already exists");
+  }
+});
+
 // Create attendance table with additional 'status' column
 const createAttendanceTableQuery = `
   CREATE TABLE IF NOT EXISTS attendance (
@@ -239,9 +257,13 @@ app.post("/register", (req, res) => {
 
 // Login and generate JWT
 app.post("/login", (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, apptype } = req.body;
+  const table = apptype === "student" ? "students" : "teachers";
+
+  console.log("apptype-----------", apptype);
+
   const getUserQuery = `
-    SELECT id, username, status FROM users
+    SELECT id, username, status FROM ${table}
     WHERE username = '${username}' AND password = '${password}'
   `;
 
