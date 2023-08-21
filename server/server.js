@@ -431,3 +431,25 @@ app
       });
     });
   });
+
+  app
+  .route("/checkAttendance")
+  .post((req, res) => { // Change the method from "put" to "post"
+    let username = req.body.username;
+    console.log(username);
+    let findUserNameQuery = `select * FROM attendance  where student_id= '${username}'`;
+    db.query(findUserNameQuery, (err, result) => {
+      if (err) {
+        console.error("Error fetching attendance records:", err);
+        return res
+          .status(500)
+          .json({ error: "Error fetching attendance records" });
+      }
+      if (result.length > 0) {
+        console.log(result);
+        res.status(200).json(result);
+      } else {
+        res.status(404).json({ error: "Attendance record not found" });
+      }
+    });
+  });
