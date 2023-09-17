@@ -55,7 +55,7 @@ const server = app.listen(port, () => {
 
 const io = socketIO(server, {
   cors: {
-    origin: "http://localhost:3000", // Replace with the actual frontend URL
+    origin: "http://localhost:3002", // Replace with the actual frontend URL
     methods: ["GET", "POST"],
     allowedHeaders: ["my-custom-header"],
     credentials: true,
@@ -258,7 +258,7 @@ app.post("/register", (req, res) => {
 // Login and generate JWT
 app.post("/login", (req, res) => {
   const { username, password, apptype } = req.body;
-  const table = apptype === "student" ? "students" : "teachers";
+  const table = apptype === "student" ? "students" : "users";
 
   console.log("apptype-----------", apptype);
 
@@ -295,6 +295,7 @@ app
           .status(500)
           .json({ error: "Error fetching attendance records" });
       }
+      console.log("/attendance", result);
       res.status(200).json(result);
     });
   })
@@ -432,24 +433,23 @@ app
     });
   });
 
-  app
-  .route("/checkAttendance")
-  .post((req, res) => { // Change the method from "put" to "post"
-    let username = req.body.username;
-    console.log(username);
-    let findUserNameQuery = `select * FROM attendance  where student_id= '${username}'`;
-    db.query(findUserNameQuery, (err, result) => {
-      if (err) {
-        console.error("Error fetching attendance records:", err);
-        return res
-          .status(500)
-          .json({ error: "Error fetching attendance records" });
-      }
-      if (result.length > 0) {
-        console.log(result);
-        res.status(200).json(result);
-      } else {
-        res.status(404).json({ error: "Attendance record not found" });
-      }
-    });
+app.route("/checkAttendance").post((req, res) => {
+  // Change the method from "put" to "post"
+  let username = req.body.username;
+  console.log(username);
+  let findUserNameQuery = `select * FROM attendance  where student_id= '${username}'`;
+  db.query(findUserNameQuery, (err, result) => {
+    if (err) {
+      console.error("Error fetching attendance records:", err);
+      return res
+        .status(500)
+        .json({ error: "Error fetching attendance records" });
+    }
+    if (result.length > 0) {
+      console.log(result);
+      res.status(200).json(result);
+    } else {
+      res.status(404).json({ error: "Attendance record not found" });
+    }
   });
+});
