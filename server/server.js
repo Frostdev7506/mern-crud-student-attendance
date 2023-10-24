@@ -55,7 +55,7 @@ const server = app.listen(port, () => {
 
 const io = socketIO(server, {
   cors: {
-    origin: "http://localhost:3002", // Replace with the actual frontend URL
+    origin: "http://localhost:3000", // Replace with the actual frontend URL
     methods: ["GET", "POST"],
     allowedHeaders: ["my-custom-header"],
     credentials: true,
