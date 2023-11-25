@@ -1,7 +1,7 @@
 {
   "name": "mern-crud-app",
   "version": "1.0.0",
-  "description": "A basic crud mern stack application ",
+  "description": "Student Attendance MERN stack application ",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon server.js",
