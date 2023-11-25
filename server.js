@@ -1,10 +1,13 @@
 const express = require("express");
+require("dotenv").config();
+
 const mysql = require("mysql2");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const socketIO = require("socket.io");
+// server.js
 
 const app = express();
 const port = 5000;
@@ -13,11 +16,25 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cors());
 
+const dbQueries = require("./server/InitializeDbHelper");
+
+// const db = mysql.createConnection({
+//   host: "localhost",
+//   user: "root",
+//   password: "hello!neeraj",
+//   database: "crudtestdb",
+// });
+console.log(process.env.DbPassword);
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "hello!neeraj",
-  database: "crudtestdb",
+  host: "mysql-ignoustudentattendance234-neerajbutola67-341f.a.aivencloud.com",
+  port: 19405,
+  user: "avnadmin",
+  password: process.env.DbPassword, // Replace with your actual password
+  database: "defaultdb",
+  ssl: {
+    ca: process.env.DbCertificate,
+    rejectUnauthorized: true,
+  },
 });
 
 db.connect((err) => {
@@ -62,83 +79,27 @@ const io = socketIO(server, {
   },
 });
 
-// Enable CORS for Socket.IO
-
-// To avoid error if deploying the app in a new server
-
-// Create users table with additional 'status' column
-const createUsersTableQuery = `
-  CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    status ENUM('active', 'inactive') DEFAULT 'active'
-  )
-`;
-
-db.query(createUsersTableQuery, (err) => {
-  if (err) {
-    console.error("Error creating users table:", err);
-  } else {
-    console.log("Users table created or already exists");
-  }
-});
-
-// Create students table with additional 'status' column
-const createStudentsTableQuery = `
-  CREATE TABLE IF NOT EXISTS students (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    status ENUM('active', 'inactive') DEFAULT 'active'
-  )
-`;
-
-db.query(createStudentsTableQuery, (err) => {
-  if (err) {
-    console.error("Error creating students table:", err);
-  } else {
-    console.log("Students table created or already exists");
-  }
-});
-
-// Create attendance table with additional 'status' column
-const createAttendanceTableQuery = `
-  CREATE TABLE IF NOT EXISTS attendance (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    student_id VARCHAR(255) NOT NULL,
-    date DATE NOT NULL,
-    present BOOLEAN DEFAULT false,
-    status ENUM('active', 'inactive') DEFAULT 'active'
-  )
-`;
-
-db.query(createAttendanceTableQuery, (err) => {
-  if (err) {
-    console.error("Error creating attendance table:", err);
-  } else {
-    console.log("Attendance table created or already exists");
-  }
-});
-
-// Add this SQL query to create the "messages" table if it doesn't exist
-const createMessagesTableQuery = `
-  CREATE TABLE IF NOT EXISTS messages (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    sender VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`;
-
-// Execute the query to create the table
-db.query(createMessagesTableQuery, (err) => {
-  if (err) {
-    console.error("Error creating messages table:", err);
-  } else {
-    console.log("Messages table created or already exists");
-  }
-});
+//Create Tables IF it does not Exist
+dbQueries.createTable("users", dbQueries.createUsersTableQuery, "Users", db);
+dbQueries.createTable("admin", dbQueries.createAdminsTableQuery, "Admin", db);
+dbQueries.createTable(
+  "student",
+  dbQueries.createStudentsTableQuery,
+  "Student",
+  db
+);
+dbQueries.createTable(
+  "users",
+  dbQueries.createMessagesTableQuery,
+  "Messages",
+  db
+);
+dbQueries.createTable(
+  "users",
+  dbQueries.createAttendanceTableQuery,
+  "Attendance",
+  db
+);
 
 // Group chat code
 // Store connected clients (users)

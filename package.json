@@ -4,7 +4,7 @@
   "description": "A basic crud mern stack application ",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon server/server.js",
+    "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -15,6 +15,7 @@
     "bcrypt": "^5.1.0",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "html2canvas": "^1.4.1",
     "i": "^0.3.7",
