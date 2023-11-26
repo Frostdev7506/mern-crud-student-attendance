@@ -219,7 +219,12 @@ app.post("/register", (req, res) => {
 // Login and generate JWT
 app.post("/login", (req, res) => {
   const { username, password, apptype } = req.body;
-  const table = apptype === "student" ? "students" : "users";
+  const table =
+    apptype === "student"
+      ? "students"
+      : apptype === "admin"
+      ? "admins"
+      : "users";
 
   console.log("apptype-----------", apptype);
 
