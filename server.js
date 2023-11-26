@@ -261,8 +261,8 @@ app.post("/getAdminData", (req, res) => {
       res.status(500).json({ error: "Error retrieving user" });
     } else {
       if (results.length >= 1) {
-        console.log(results.slice(0, 10));
-        res.status(200).json(results.slice(0, 10));
+        console.log(results);
+        res.status(200).json(results);
       }
     }
   });
