@@ -251,6 +251,24 @@ app.post("/login", (req, res) => {
   });
 });
 
+// Login and generate JWT
+app.post("/getAdminData", (req, res) => {
+  const getUserQuery = `
+    SELECT id, username, status FROM admins
+  `;
+
+  db.query(getUserQuery, (err, results) => {
+    if (err) {
+      console.error("Error retrieving user:", err);
+      res.status(500).json({ error: "Error retrieving user" });
+    } else {
+      if (results.length >= 1) {
+        res.status(200).json({ token });
+      }
+    }
+  });
+});
+
 app
   .route("/attendance")
   .get((req, res) => {
